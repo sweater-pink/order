@@ -28,6 +28,10 @@
       color: #333; box-shadow: 0 2px 5px rgba(0,0,0,0.08);
     }
     #previewBox strong { color: #c2185b; }
+    #previewTitle {
+      text-align: center; font-weight: 700; color: #c2185b;
+      font-size: 15px; margin-bottom: 6px;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/choices.js/public/assets/styles/choices.min.css" />
@@ -62,10 +66,12 @@
       <label for="server">Pilih Server</label>
       <select id="server" required>
         <option value="">-- Pilih Server --</option>
+        <!-- INDONESIA -->
         <option>[ID] Indonesia 1 HP | Rp. 10.000 | 30 Hari</option>
         <option>[ID] Indonesia 2 HP | Rp. 12.000 | 30 Hari</option>
         <option>[ID] Indonesia 1 HP | Rp. 20.000 | 60 Hari</option>
         <option>[ID] Indonesia 2 HP | Rp. 24.000 | 60 Hari</option>
+        <!-- SINGAPORE -->
         <option>[SG] Singapore 1 HP | Rp. 8.000 | 30 Hari</option>
         <option>[SG] Singapore 2 HP | Rp. 10.000 | 30 Hari</option>
         <option>[SG] Singapore 1 HP | Rp. 18.000 | 60 Hari</option>
@@ -100,12 +106,10 @@
       </select>
     </div>
 
-<div id="previewBox">
-  <div style="text-align:center; font-weight:700; color:#c2185b; font-size:15px; margin-bottom:6px;">
-    🔥🔥 Gasss Order 🔥🔥
-  </div>
-  <div id="previewContent">Isi semua data untuk lihat order kamu di sini!</div>
-</div>
+    <div id="previewBox">
+      <div id="previewTitle">🔥🔥 Gasss Order 🔥🔥</div>
+      <div id="previewContent">Isi semua data untuk lihat order kamu di sini!</div>
+    </div>
 
     <button type="submit">Kirim ke WhatsApp</button>
     <p style="text-align:center;font-size:12px;color:#888;margin-top:8px;">
@@ -116,6 +120,9 @@
   <footer>© 2025 Sweater Pink Order | Premium</footer>
 
 <script>
+  // stok global
+  const stokGlobal = { ID: 70, SG: 0 };
+
   const provSelect = new Choices(document.getElementById('provinsi'), {
     searchEnabled: true,
     itemSelectText: '',
@@ -131,53 +138,82 @@
   function extractData(serverText) {
     const parts = serverText.split('|').map(p => p.trim());
     return {
-      namaServer: parts[0] || '-',
-      harga: parts[1] || '-',
-      masaAktif: parts[2] || '-'
+      namaServer: parts[0] || '',
+      harga: parts[1] || '',
+      masaAktif: parts[2] || ''
     };
   }
-
-  document.querySelectorAll('#waForm input, #waForm select').forEach(el => {
-    el.addEventListener('change', updatePreview);
-  });
 
   function updatePreview() {
     const nama = document.getElementById('nama').value;
     const jenis = document.getElementById('jenis').value;
-    const serverText = serverSelect.options[serverSelect.selectedIndex]?.text || '-';
-    const data = extractData(serverText);
     const provinsi = document.getElementById('provinsi').value;
     const kartu = document.getElementById('kartu').value;
+    const selected = serverSelect.options[serverSelect.selectedIndex];
+    const serverVal = serverSelect.value;
 
-    if (nama || jenis || serverText || provinsi || kartu) {
+    if (nama || jenis || provinsi || kartu || serverVal) {
       previewBox.style.display = 'block';
+      let serverHTML = '';
+
+      if (serverVal) {
+        const data = extractData(selected.text);
+        let stok = '-';
+        if (selected.text.includes('[ID]')) stok = stokGlobal.ID;
+        else if (selected.text.includes('[SG]')) stok = stokGlobal.SG;
+
+        serverHTML = `
+          <strong>Server:</strong> ${data.namaServer}<br>
+          <strong>Harga:</strong> ${data.harga}<br>
+          <strong>Masa Aktif:</strong> ${data.masaAktif}<br>
+          <strong>Stok:</strong> <span style="color:${stok == 0 ? 'red' : '#333'}">${stok}</span><br>
+        `;
+      }
+
       previewContent.innerHTML = `
         <strong>Nama:</strong> ${nama || '-'}<br>
         <strong>Jenis Order:</strong> ${jenis || '-'}<br>
-        <strong>Server:</strong> ${data.namaServer}<br>
-        <strong>Harga:</strong> ${data.harga}<br>
-        <strong>Masa Aktif:</strong> ${data.masaAktif}<br>
+        ${serverHTML}
         <strong>Provinsi:</strong> ${provinsi || '-'}<br>
         <strong>Kartu:</strong> ${kartu || '-'}
       `;
     }
   }
 
+  document.querySelectorAll('#waForm input, #waForm select').forEach(el => {
+    el.addEventListener('change', updatePreview);
+  });
+
   serverSelect.addEventListener('change', () => {
-    const data = extractData(serverSelect.options[serverSelect.selectedIndex].text);
-    hargaBox.innerText = 'Harga: ' + data.harga;
+    const selected = serverSelect.options[serverSelect.selectedIndex];
+    const text = selected.text;
+    if (!text) {
+      hargaBox.innerText = 'Harga: -';
+      return;
+    }
+
+    const data = extractData(text);
+    let stok = '-';
+    if (text.includes('[ID]')) stok = stokGlobal.ID;
+    else if (text.includes('[SG]')) stok = stokGlobal.SG;
+
+    hargaBox.innerHTML = `
+      Harga: ${data.harga}<br>
+      <span style="color:${stok == 0 ? 'red' : '#333'}">Stok: ${stok}</span>
+    `;
     updatePreview();
   });
 
+  // Kirim ke WhatsApp (tetap aktif)
   document.getElementById('waForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const nama = document.getElementById('nama').value;
     const jenis = document.getElementById('jenis').value;
-    const data = extractData(serverSelect.options[serverSelect.selectedIndex].text);
+    const selected = serverSelect.options[serverSelect.selectedIndex];
+    const data = extractData(selected.text);
     const provinsi = document.getElementById('provinsi').value;
     const kartu = document.getElementById('kartu').value;
     const nomor = '6283870282897';
-
     const heart = String.fromCharCode(0x2764, 0xFE0F);
 
     const teks = 
